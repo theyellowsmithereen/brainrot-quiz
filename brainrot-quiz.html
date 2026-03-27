@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brainrot Quiz</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --text: #e0e0f0;
+    --text-dim: #7070a0;
+    --common-color: #4ade80;
+    --rare-color: #60a5fa;
+    --epic-color: #a855f7;
+    --legendary-color: #fbbf24;
+    --mythic-color: #f87171;
+    --lime-glow: #84ff00;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Rajdhani', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  body::before {
+    content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at 20% 20%, rgba(74,222,128,0.04) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 80%, rgba(168,85,247,0.04) 0%, transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+ 
+  /* HEADER */
+  #header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,10,15,0.92); backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 10px 20px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  #header h1 {
+    font-family: 'Orbitron', sans-serif; font-size: 1.2rem; font-weight: 900;
+    background: linear-gradient(90deg, #4ade80, #60a5fa, #a855f7, #fbbf24);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; white-space: nowrap;
+  }
+  #input-wrap { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 180px; }
+  #brainrot-input {
+    background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.12);
+    border-radius: 8px; padding: 8px 14px; color: var(--text); font-family: 'Rajdhani', sans-serif;
+    font-size: 1rem; font-weight: 600; width: 240px; outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  #brainrot-input:focus { border-color: rgba(74,222,128,0.5); box-shadow: 0 0 0 3px rgba(74,222,128,0.1); }
+ 
+  #last-guess { display: flex; align-items: center; gap: 6px; }
+  #last-guess-label { font-size: 0.75rem; color: var(--text-dim); }
+  #last-guess-img {
+    width: 42px; height: 42px; object-fit: contain; display: none;
+    filter: drop-shadow(0 0 4px rgba(255,255,255,0.35));
+  }
+ 
+  #counter { font-family: 'Orbitron', sans-serif; font-size: 0.95rem; font-weight: 700; color: var(--common-color); white-space: nowrap; }
+  #timer {
+    font-family: 'Orbitron', sans-serif; font-size: 0.95rem;
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px; padding: 6px 12px; white-space: nowrap;
+  }
+  #giveup-btn {
+    background: rgba(248,113,113,0.15); border: 1.5px solid rgba(248,113,113,0.4); color: #f87171;
+    font-family: 'Orbitron', sans-serif; font-size: 0.68rem; font-weight: 700; border-radius: 8px;
+    padding: 7px 12px; cursor: pointer; letter-spacing: 0.05em; transition: all 0.2s; white-space: nowrap;
+  }
+  #giveup-btn:hover { background: rgba(248,113,113,0.28); box-shadow: 0 0 12px rgba(248,113,113,0.3); }
+  #shadows-btn {
+    background: rgba(96,165,250,0.12); border: 1.5px solid rgba(96,165,250,0.35); color: #60a5fa;
+    font-family: 'Orbitron', sans-serif; font-size: 0.68rem; font-weight: 700; border-radius: 8px;
+    padding: 7px 12px; cursor: pointer; letter-spacing: 0.05em; transition: all 0.2s; white-space: nowrap;
+  }
+  #shadows-btn:hover { background: rgba(96,165,250,0.22); box-shadow: 0 0 12px rgba(96,165,250,0.25); }
+ 
+  /* MAIN - two-column grid: left for normal rarities, right for Brainrot God + Secret + OG + Lucky Block */
+  #main {
+    padding: 10px 12px; position: relative; z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(260px, 520px) 1fr;
+    gap: 10px;
+    align-items: start;
+  }
+  #left-col {
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  #right-col {
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  @media (max-width: 700px) {
+    #main { grid-template-columns: 1fr; }
+  }
+
+  /* SECTION */
+  .section {
+    break-inside: avoid; border-radius: 12px; padding: 10px 12px;
+    position: relative; transition: background 0.5s, box-shadow 0.4s, border-color 0.5s;
+  }
+  .section-secret, .section-brainrotgod { }
+
+  /* Section completed: green fill takes over */
+  .section.complete {
+    background: rgba(74,222,128,0.10) !important;
+    border-color: rgba(74,222,128,0.55) !important;
+    animation: completePulse 2s ease-in-out infinite;
+  }
+  /* Override animated borders for complete state */
+  .section-brainrotgod.complete::before,
+  .section-secret.complete::before,
+  .section-og.complete::before,
+  .section-lucky.complete::before {
+    background: linear-gradient(90deg, #4ade80, #86efac, #4ade80) !important;
+    background-size: 200% 100% !important;
+    animation: completeBorderShift 2s linear infinite !important;
+  }
+  @keyframes completeBorderShift { 0%{background-position:0% 50%} 100%{background-position:200% 50%} }
+
+  @keyframes completePulse {
+    0%,100% { box-shadow: 0 0 0 2px rgba(74,222,128,0.5), 0 0 20px rgba(74,222,128,0.12); }
+    50%      { box-shadow: 0 0 0 2px rgba(74,222,128,0.9), 0 0 40px rgba(74,222,128,0.28); }
+  }
+
+  /* Section complete: guessed images get green glow */
+  .section.complete .brainrot-card.guessed .card-visible-img {
+    filter: drop-shadow(0 0 3px rgba(132,255,0,0.85)) drop-shadow(0 0 7px rgba(132,255,0,0.35)) !important;
+  }
+
+  /* Section complete toast */
+  #section-complete-toast {
+    position: fixed; top: 112px; left: 50%; transform: translateX(-50%) scale(0.85);
+    background: rgba(0,0,0,0.92); border: 1.5px solid rgba(74,222,128,0.4);
+    border-radius: 10px; padding: 8px 18px; font-family: 'Rajdhani', sans-serif;
+    font-size: 0.9rem; font-weight: 700; white-space: nowrap;
+    pointer-events: none; z-index: 601; opacity: 0; transition: opacity 0.18s, transform 0.18s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  #section-complete-toast.show { opacity: 1; transform: translateX(-50%) scale(1); }
+ 
+  /* Per-rarity styles */
+  .section-common    { background: rgba(74,222,128,0.04);  border: 1.5px solid rgba(74,222,128,0.3); }
+  .section-common    .section-title { color: var(--common-color); }
+  .section-rare      { background: rgba(96,165,250,0.04);  border: 1.5px solid rgba(96,165,250,0.3); }
+  .section-rare      .section-title { color: var(--rare-color); }
+  .section-epic      { background: rgba(168,85,247,0.05);  border: 1.5px solid rgba(168,85,247,0.35); }
+  .section-epic      .section-title { color: var(--epic-color); }
+  .section-legendary { background: rgba(251,191,36,0.04);  border: 1.5px solid rgba(251,191,36,0.3); }
+  .section-legendary .section-title { color: var(--legendary-color); }
+  .section-mythic    { background: rgba(248,113,113,0.05); border: 1.5px solid rgba(248,113,113,0.3); }
+  .section-mythic    .section-title { color: var(--mythic-color); }
+  .section-misc      { background: rgba(160,160,180,0.04); border: 1.5px solid rgba(160,160,180,0.22); }
+  .section-misc      .section-title { color: #b0b0c8; }
+ 
+  /* Brainrot God - rainbow border */
+  .section-brainrotgod { background: rgba(255,255,255,0.03); border: 1.5px solid transparent; position: relative; }
+  .section-brainrotgod::before {
+    content: ''; position: absolute; inset: -1.5px; border-radius: 14px;
+    background: linear-gradient(90deg,#ff0000,#ff7700,#ffff00,#00ff00,#0077ff,#8b00ff,#ff00cc,#ff0000,#ff7700,#ffff00,#00ff00,#0077ff,#8b00ff,#ff00cc,#ff0000);
+    background-size: 200% 100%; animation: rainbowShift 4s linear infinite; z-index: -1;
+  }
+  .section-brainrotgod::after { content: ''; position: absolute; inset: 1.5px; border-radius: 12px; background: rgba(10,10,15,0.97); z-index: -1; }
+  @keyframes rainbowShift { 0%{background-position:0% 50%} 100%{background-position:100% 50%} }
+  /* Brainrot God title: rainbow only on the label text, not count */
+  .section-brainrotgod .section-title { color: #ff00cc; } /* fallback / emoji colour */
+  .section-brainrotgod .section-title .title-label {
+    background: linear-gradient(90deg,#ff0000,#ff7700,#ffff00,#00ff00,#0077ff,#8b00ff,#ff00cc,#ff0000,#ff7700,#ffff00,#00ff00,#0077ff,#8b00ff,#ff00cc,#ff0000);
+    background-size: 200% 100%; animation: rainbowShift 4s linear infinite;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+
+  /* Secret title: solid white (conveyor anim on text is invisible anyway) */
+  .section-secret .section-title { color: #ffffff; }
+  .section-secret .section-title .title-label { color: #ffffff; }
+
+  /* OG title: solid gold */
+  .section-og .section-title { color: #ffd700; }
+  .section-og .section-title .title-label { color: #ffd700; }
+
+  /* Lucky Block title: solid red-orange */
+  .section-lucky .section-title { color: #ff4400; }
+  .section-lucky .section-title .title-label { color: #ffcc00; }
+ 
+  /* Secret border */
+  .section-secret { background: rgba(255,255,255,0.02); border: 1.5px solid transparent; position: relative; }
+  .section-secret::before {
+    content: ''; position: absolute; inset: -1.5px; border-radius: 14px;
+    background: repeating-linear-gradient(180deg, #ffffff 0px, #ffffff 8px, #000000 8px, #000000 16px);
+    background-size: 100% 16px;
+    animation: conveyorSecret 0.6s linear infinite; z-index: -1;
+  }
+  .section-secret::after { content: ''; position: absolute; inset: 1.5px; border-radius: 12px; background: rgba(10,10,15,0.97); z-index: -1; }
+  @keyframes conveyorSecret { 0%{background-position:0 0} 100%{background-position:0 16px} }
+  /* OG border */
+  .section-og { background: rgba(255,215,0,0.03); border: 1.5px solid transparent; position: relative; }
+  .section-og::before {
+    content: ''; position: absolute; inset: -1.5px; border-radius: 14px;
+    background: repeating-linear-gradient(180deg, #ffd700 0px, #ffd700 10px, #111111 10px, #111111 20px);
+    background-size: 100% 20px;
+    animation: conveyorOG 0.7s linear infinite; z-index: -1;
+  }
+  .section-og::after { content: ''; position: absolute; inset: 1.5px; border-radius: 12px; background: rgba(10,10,15,0.97); z-index: -1; }
+  @keyframes conveyorOG { 0%{background-position:0 0} 100%{background-position:0 20px} }
+  /* Lucky Block border */
+  .section-lucky { background: rgba(255,200,0,0.03); border: 1.5px solid transparent; position: relative; }
+  .section-lucky::before {
+    content: ''; position: absolute; inset: -1.5px; border-radius: 14px;
+    background: linear-gradient(90deg,#ff2200 0%,#ff2200 25%,#ffcc00 50%,#ff2200 75%,#ff2200 100%);
+    background-size: 300% 100%; animation: luckyShift 2s linear infinite; z-index: -1;
+  }
+  .section-lucky::after { content: ''; position: absolute; inset: 1.5px; border-radius: 12px; background: rgba(10,10,15,0.97); z-index: -1; }
+  @keyframes luckyShift { 0%{background-position:0% 0%} 100%{background-position:300% 0%} }
+  .section-title {
+    font-family: 'Orbitron', sans-serif; font-size: 0.68rem; font-weight: 900;
+    letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title-count {
+    font-size: 0.62rem; opacity: 0.6; font-weight: 400;
+    /* Reset any inherited background-clip so it's always visible */
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    -webkit-text-fill-color: currentColor !important;
+    background-clip: unset !important;
+  }
+  .misc-hint-wrap { position: relative; cursor: help; display: inline-flex; align-items: center; margin-left: 4px; }
+  .misc-hint-wrap::after {
+    content: attr(title); position: absolute; bottom: calc(100% + 6px); left: 50%;
+    transform: translateX(-50%); background: rgba(0,0,0,0.92); color: #fbbf24;
+    font-size: 0.65rem; font-weight: 600; padding: 5px 10px; border-radius: 6px;
+    white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.2s;
+    border: 1px solid rgba(251,191,36,0.3); font-family: 'Rajdhani', sans-serif;
+    z-index: 50;
+  }
+  .misc-hint-wrap:hover::after { opacity: 1; }
+  .misc-hint-icon { width: 18px; height: 18px; opacity: 0.65; filter: grayscale(0.5); vertical-align: middle; }
+ 
+  /* GRID */
+  .brainrot-grid { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+ 
+  /* CARD - no box, just the image floating */
+  .brainrot-card {
+    width: 64px; height: 64px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: visible; cursor: default; flex-shrink: 0;
+    background: transparent; border: none;
+  }
+ 
+  /* Question mark placeholder — coloured div, no image needed */
+  .brainrot-card .q-mark {
+    width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+    font-family: 'Orbitron', sans-serif; font-size: 1.3rem; font-weight: 900;
+    opacity: 0.45; user-select: none; flex-shrink: 0;
+  }
+  .brainrot-card.guessed .q-mark { display: none; }
+  /* Per-rarity question mark colours */
+  .section-common    .q-mark { color: #4ade80; }
+  .section-rare      .q-mark { color: #60a5fa; }
+  .section-epic      .q-mark { color: #a855f7; }
+  .section-legendary .q-mark { color: #fbbf24; }
+  .section-mythic    .q-mark { color: #f87171; }
+  .section-secret    .q-mark { color: #ffffff; }
+  .section-og        .q-mark { color: #ffd700; }
+  .section-lucky     .q-mark { color: #ffcc00; }
+  /* Brainrot God rainbow animated q-mark — synced to same rainbowShift keyframe */
+  .section-brainrotgod .q-mark {
+    background: linear-gradient(90deg,#ff0000,#ff7700,#ffff00,#00ff00,#0077ff,#8b00ff,#ff00cc,#ff0000,#ff7700,#ffff00,#00ff00,#0077ff,#8b00ff,#ff00cc,#ff0000);
+    background-size: 200% 100%;
+    animation: rainbowShift 4s linear infinite;
+    animation-delay: 0s;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    opacity: 0.65;
+  }
+  /* Legacy question-img hidden since we use q-mark divs now */
+  .brainrot-card img.question-img { display: none !important; }
+ 
+  /* card-visible-img class shared by brainrot-img and rotating-frame for styling hooks */
+  .brainrot-card img.brainrot-img {
+    width: 64px; height: 64px; object-fit: contain; display: none;
+    filter: drop-shadow(0 0 1.5px rgba(255,255,255,0.8)) drop-shadow(0 0 3px rgba(255,255,255,0.4));
+    transition: filter 0.4s;
+  }
+  .brainrot-card.guessed img.brainrot-img { display: block; }
+  .brainrot-card.guessed .q-mark { display: none; }
+ 
+  .brainrot-card.flash { animation: flashCard 0.45s ease; }
+  @keyframes flashCard {
+    0%   { transform: scale(1); }
+    45%  { transform: scale(1.28); filter: brightness(1.7); }
+    100% { transform: scale(1); }
+  }
+ 
+  .brainrot-card.guessed:hover::after {
+    content: attr(data-name); position: absolute; bottom: calc(100% + 6px); left: 50%;
+    transform: translateX(-50%); background: rgba(0,0,0,0.9); color: #fff;
+    font-size: 0.64rem; font-weight: 600; padding: 4px 8px; border-radius: 5px;
+    white-space: nowrap; pointer-events: none; z-index: 200; border: 1px solid rgba(255,255,255,0.1);
+  }
+ 
+  /* Rotating cards */
+  .rotating-frame {
+    position: absolute; inset: 0; margin: auto;
+    width: 64px; height: 64px; object-fit: contain;
+    filter: drop-shadow(0 0 1.5px rgba(255,255,255,0.8)) drop-shadow(0 0 3px rgba(255,255,255,0.4));
+    transition: opacity 0.4s, filter 0.4s;
+    display: none;
+  }
+  .brainrot-card.guessed.rotating img.brainrot-img { display: none !important; }
+  .brainrot-card.guessed.rotating .rotating-frame { display: block; }
+ 
+  /* Green outline applied via section.complete — targets both rotating and normal */
+  .section.complete .brainrot-card.guessed img.brainrot-img,
+  .section.complete .brainrot-card.guessed .rotating-frame {
+    filter: drop-shadow(0 0 3px rgba(132,255,0,0.9)) drop-shadow(0 0 8px rgba(132,255,0,0.4)) !important;
+  }
+ 
+  /* Shadow mode */
+  .brainrot-card.shadow-active .q-mark { display: none; }
+  .brainrot-card.shadow-active .shadow-img-wrap { display: flex; }
+  .shadow-img-wrap {
+    display: none; position: absolute; inset: 0; align-items: center; justify-content: center;
+  }
+  .shadow-img-wrap img { width: 64px; height: 64px; object-fit: contain; filter: brightness(0); }
+  .brainrot-card.shadow-new-reveal .shadow-img-wrap img {
+    animation: shadowAppear 2.2s ease-out forwards;
+  }
+  @keyframes shadowAppear {
+    0%   { filter: brightness(0); }
+    15%  { filter: brightness(0) drop-shadow(0 0 10px #fff) drop-shadow(0 0 18px #fff); }
+    30%  { filter: brightness(0) drop-shadow(0 0 3px #fff); }
+    50%  { filter: brightness(0) drop-shadow(0 0 12px #fff) drop-shadow(0 0 22px #fff); }
+    70%  { filter: brightness(0) drop-shadow(0 0 5px rgba(255,255,255,0.6)); }
+    100% { filter: brightness(0); }
+  }
+
+  /* Already guessed toast */
+  #already-guessed-toast {
+    position: fixed; top: 70px; left: 50%; transform: translateX(-50%) scale(0.85);
+    background: rgba(0,0,0,0.9); border: 1.5px solid rgba(255,255,255,0.18);
+    border-radius: 10px; padding: 8px 18px; font-family: 'Rajdhani', sans-serif;
+    font-size: 0.85rem; font-weight: 700; color: #fff; white-space: nowrap;
+    pointer-events: none; z-index: 600; opacity: 0; transition: opacity 0.18s, transform 0.18s;
+  }
+  #already-guessed-toast.show { opacity: 1; transform: translateX(-50%) scale(1); }
+
+  /* Input glow on welcome dismiss */
+  @keyframes inputWelcomeGlow {
+    0%   { box-shadow: 0 0 0 3px rgba(74,222,128,0.0); border-color: rgba(255,255,255,0.12); transform: scale(1); }
+    30%  { box-shadow: 0 0 0 8px rgba(74,222,128,0.4), 0 0 24px rgba(74,222,128,0.5); border-color: rgba(74,222,128,0.9); transform: scale(1.06); }
+    70%  { box-shadow: 0 0 0 5px rgba(74,222,128,0.25); border-color: rgba(74,222,128,0.7); transform: scale(1.03); }
+    100% { box-shadow: 0 0 0 3px rgba(74,222,128,0.1); border-color: rgba(74,222,128,0.5); transform: scale(1); }
+  }
+  .input-welcome-flash { animation: inputWelcomeGlow 1.2s ease-out forwards; }
+
+  /* Timer flash orange every minute */
+  @keyframes timerMinuteFlash {
+    0%   { background: rgba(251,146,60,0.0); color: var(--text); }
+    20%  { background: rgba(251,146,60,0.35); color: #fb923c; box-shadow: 0 0 16px rgba(251,146,60,0.5); }
+    60%  { background: rgba(251,146,60,0.15); color: #fb923c; }
+    100% { background: rgba(255,255,255,0.05); color: var(--text); }
+  }
+  .timer-minute-flash { animation: timerMinuteFlash 1.2s ease-out forwards; }
+
+  /* WIN OVERLAY */
+  #win-overlay {
+    display: none; position: fixed; inset: 0; z-index: 800;
+    background: rgba(0, 30, 0, 0.0); backdrop-filter: blur(0px);
+    align-items: center; justify-content: center; flex-direction: column;
+    transition: background 0.8s, backdrop-filter 0.8s;
+  }
+  #win-overlay.active { display: flex; background: rgba(0, 30, 0, 0.82); backdrop-filter: blur(6px); }
+  #win-content {
+    text-align: center; position: relative; z-index: 2; pointer-events: none;
+    animation: winPop 0.6s cubic-bezier(.36,1.4,.54,1) forwards;
+  }
+  @keyframes winPop { 0%{transform:scale(0.5);opacity:0} 100%{transform:scale(1);opacity:1} }
+  #win-title {
+    font-family: 'Orbitron', sans-serif; font-size: clamp(2.5rem,8vw,5rem); font-weight: 900;
+    background: linear-gradient(90deg, #4ade80, #86efac, #22c55e);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    text-shadow: none; animation: winPulse 1.5s ease-in-out infinite;
+    letter-spacing: 0.08em;
+  }
+  @keyframes winPulse { 0%,100%{filter:brightness(1) drop-shadow(0 0 20px #4ade80);} 50%{filter:brightness(1.3) drop-shadow(0 0 40px #86efac);} }
+  #win-subtitle {
+    font-family: 'Orbitron', sans-serif; font-size: clamp(0.9rem,2.5vw,1.4rem);
+    color: #86efac; margin-top: 16px; letter-spacing: 0.1em; font-weight: 700;
+  }
+  #win-restart-btn {
+    margin-top: 36px; pointer-events: all;
+    background: rgba(74,222,128,0.2); border: 2px solid rgba(74,222,128,0.6); color: #4ade80;
+    font-family: 'Orbitron', sans-serif; font-size: 0.85rem; font-weight: 700;
+    border-radius: 10px; padding: 12px 32px; cursor: pointer; letter-spacing: 0.07em;
+    transition: all 0.2s; display: none;
+  }
+  #win-restart-btn:hover { background: rgba(74,222,128,0.35); box-shadow: 0 0 20px rgba(74,222,128,0.4); }
+  /* Falling images canvas — behind the text overlay */
+  #win-canvas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 799; display: none; }
+  /* Counter win glow */
+  #counter.win-glow {
+    animation: counterWin 1.5s ease-in-out infinite;
+    color: #4ade80;
+  }
+  @keyframes counterWin {
+    0%,100% { text-shadow: 0 0 8px rgba(74,222,128,0.6); transform: scale(1); color: #4ade80; }
+    50%      { text-shadow: 0 0 24px rgba(74,222,128,1), 0 0 48px rgba(74,222,128,0.5); transform: scale(1.18); color: #86efac; }
+  }
+
+  /* WELCOME OVERLAY */
+  #welcome-overlay {
+    position: fixed; inset: 0; z-index: 900;
+    background: rgba(4,4,12,0.45); backdrop-filter: blur(4px) brightness(0.7);
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.5s;
+  }
+  #welcome-overlay.hidden { opacity: 0; pointer-events: none; }
+  #welcome-box {
+    background: rgba(12,12,22,0.98); border: 1.5px solid rgba(74,222,128,0.35);
+    border-radius: 20px; padding: 32px 36px; max-width: 500px; width: 92%;
+    text-align: center; box-shadow: 0 8px 60px rgba(0,0,0,0.7), 0 0 40px rgba(74,222,128,0.06);
+  }
+  #welcome-title {
+    font-family: 'Orbitron', sans-serif; font-size: 2.4rem; font-weight: 900;
+    background: linear-gradient(90deg, #4ade80, #60a5fa, #a855f7);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    margin-bottom: 16px; letter-spacing: 0.06em;
+  }
+  #welcome-box p {
+    font-size: 0.95rem; color: #c0c0d8; line-height: 1.65; margin-bottom: 10px; font-weight: 500;
+  }
+  #welcome-box p strong { color: #e8e8f8; }
+  #welcome-disclaimer {
+    font-size: 0.78rem !important; color: #6060a0 !important; margin-top: 2px;
+    background: rgba(255,255,255,0.03); border-radius: 8px; padding: 8px 12px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  #welcome-box a { color: #60a5fa; text-decoration: underline; font-weight: 600; }
+  #welcome-box a:hover { color: #93c5fd; }
+  #welcome-hint-box {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px; padding: 14px 18px; margin-top: 18px;
+    display: flex; align-items: center; gap: 16px; text-align: left;
+  }
+  #welcome-hint-label {
+    font-family: 'Orbitron', sans-serif; font-size: 0.58rem; font-weight: 900;
+    letter-spacing: 0.14em; color: #fbbf24; text-transform: uppercase; margin-bottom: 6px;
+  }
+  #welcome-hint-img { width: 64px; height: 64px; object-fit: contain; flex-shrink: 0; filter: drop-shadow(0 0 6px rgba(255,255,255,0.3)); }
+  #welcome-hint-info { flex: 1; min-width: 0; }
+  #welcome-hint-name { font-weight: 700; font-size: 1rem; color: #f0f0ff; margin-bottom: 3px; }
+  #welcome-hint-rarity { font-size: 0.72rem; font-weight: 700; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.06em; }
+  #welcome-hint-flavour { font-size: 0.78rem; color: #8080a8; font-style: italic; }
+  #welcome-start-btn {
+    margin-top: 20px; background: rgba(74,222,128,0.15); border: 2px solid rgba(74,222,128,0.5);
+    color: #4ade80; font-family: 'Orbitron', sans-serif; font-size: 0.82rem; font-weight: 700;
+    border-radius: 10px; padding: 12px 32px; cursor: pointer; letter-spacing: 0.08em;
+    transition: all 0.2s; width: 100%;
+  }
+  #welcome-start-btn:hover { background: rgba(74,222,128,0.28); box-shadow: 0 0 24px rgba(74,222,128,0.35); }
+ 
+  /* GIVE UP OVERLAY */
+  #giveup-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88);
+    z-index: 500; overflow-y: auto; padding: 40px 24px; backdrop-filter: blur(8px);
+  }
+  #giveup-overlay.active { display: block; }
+  #giveup-content { max-width: 860px; margin: 0 auto; }
+  #giveup-content h2 { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; color: #f87171; margin-bottom: 8px; text-align: center; }
+  #giveup-content .subtitle { text-align: center; color: var(--text-dim); margin-bottom: 32px; font-size: 0.9rem; }
+  #giveup-close {
+    display: block; margin: 32px auto 0; background: rgba(248,113,113,0.15); border: 1.5px solid rgba(248,113,113,0.4);
+    color: #f87171; font-family: 'Orbitron', sans-serif; font-size: 0.8rem; font-weight: 700;
+    border-radius: 8px; padding: 10px 28px; cursor: pointer; letter-spacing: 0.05em; transition: all 0.2s;
+  }
+  #giveup-close:hover { background: rgba(248,113,113,0.28); }
+  .missed-section { margin-bottom: 28px; }
+  .missed-section h3 { font-family: 'Orbitron', sans-serif; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px; opacity: 0.7; }
+  .missed-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+  .missed-item { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 70px; }
+  .missed-item img { width: 56px; height: 56px; object-fit: contain; }
+  .missed-item span { font-size: 0.62rem; text-align: center; color: #d0d0e8; line-height: 1.3; word-break: break-word; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+ 
+  /* Shadow controls */
+  #shadow-controls {
+    position: fixed; bottom: 24px; right: 24px; z-index: 200;
+    background: rgba(10,10,15,0.92); border: 1.5px solid rgba(96,165,250,0.4);
+    border-radius: 10px; padding: 12px 16px; display: none; align-items: center; gap: 10px; backdrop-filter: blur(8px);
+  }
+  #shadow-controls.active { display: flex; }
+  #shadow-next-btn {
+    background: rgba(96,165,250,0.15); border: 1.5px solid rgba(96,165,250,0.4); color: #60a5fa;
+    font-family: 'Orbitron', sans-serif; font-size: 0.68rem; font-weight: 700; border-radius: 7px;
+    padding: 6px 12px; cursor: pointer; letter-spacing: 0.05em; transition: all 0.2s;
+  }
+  #shadow-next-btn:hover { background: rgba(96,165,250,0.28); }
+  #shadow-info { font-size: 0.74rem; color: var(--text-dim); }
+ 
+  #confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; }
+</style>
+</head>
+<body>
+ 
+<canvas id="confetti-canvas"></canvas>
+<canvas id="win-canvas"></canvas>
+
+<!-- WELCOME OVERLAY -->
+<div id="welcome-overlay">
+  <div id="welcome-box">
+    <div id="welcome-title">WELCOME!</div>
+    <p>A fan-made quiz to test your memory of brainrots from the Roblox game <strong>Steal A Brainrot</strong> by <strong>BRAZILIAN SPYDER</strong>.</p>
+    <p id="welcome-disclaimer">⚠ We are not affiliated with or endorsed by BRAZILIAN SPYDER or Roblox in any way. This is purely a fan project for fun.</p>
+    <p><a href="https://www.roblox.com/games/109983668079237/Steal-a-Brainrot" target="_blank" rel="noopener">🎮 Play the game here on Roblox!</a></p>
+    <div id="welcome-hint-box">
+      <img id="welcome-hint-img" src="" alt="hint">
+      <div id="welcome-hint-info">
+        <div id="welcome-hint-label">🎲 RANDOM HINT</div>
+        <div id="welcome-hint-name">...</div>
+        <div id="welcome-hint-rarity">...</div>
+        <div id="welcome-hint-flavour">...</div>
+      </div>
+    </div>
+    <button id="welcome-start-btn">▶ START QUIZ</button>
+  </div>
+</div>
+
+<!-- ALREADY GUESSED TOAST -->
+<div id="already-guessed-toast"></div>
+
+<!-- SECTION COMPLETE TOAST -->
+<div id="section-complete-toast"><span id="sct-emoji">🎉</span> <span id="sct-text"></span></div>
+
+<!-- WIN OVERLAY -->
+<div id="win-overlay">
+  <div id="win-content">
+    <div id="win-title">CONGRATULATIONS!</div>
+    <div id="win-subtitle">YOU GUESSED ALL <span id="win-total"></span> BRAINROTS!</div>
+    <button id="win-restart-btn">↺ PLAY AGAIN</button>
+  </div>
+</div>
+ 
+<div id="header">
+  <h1>🧠 BRAINROT QUIZ</h1>
+  <div id="input-wrap">
+    <input type="text" id="brainrot-input" placeholder="Name a brainrot..." autocomplete="off" spellcheck="false">
+    <div id="last-guess">
+      <span id="last-guess-label">–</span>
+      <img id="last-guess-img" src="" alt="last guess">
+    </div>
+  </div>
+  <div id="counter">0 / ?</div>
+  <div id="timer">⏱ 00:00:00</div>
+  <button id="shadows-btn">👁 SHADOWS</button>
+  <button id="giveup-btn">☠ GIVE UP</button>
+</div>
+ 
+<div id="main"></div>
+ 
+<div id="shadow-controls">
+  <span id="shadow-info">Press Enter to reveal next shadow</span>
+  <button id="shadow-next-btn">NEXT SHADOW ↵</button>
+</div>
+ 
+<div id="giveup-overlay">
+  <div id="giveup-content">
+    <h2>☠ YOU GAVE UP</h2>
+    <p class="subtitle" id="giveup-subtitle"></p>
+    <div id="missed-container"></div>
+    <button id="giveup-close">CLOSE</button>
+  </div>
+</div>
+ 
+<script>
+// ─────────────────────────────────────────────
+// SECTION ORDER: OG goes after Secret
+// ─────────────────────────────────────────────
+const RARITIES_ORDER = ['Common','Rare','Epic','Legendary','Mythic','Brainrot God','Secret','OG','Lucky Block'];
+ 
+const RARITY_META = {
+  'Common':       { cls: 'common',      label: 'COMMON',        emoji: '◉' },
+  'Rare':         { cls: 'rare',        label: 'RARE',          emoji: '💎' },
+  'Epic':         { cls: 'epic',        label: 'EPIC',          emoji: '✨' },
+  'Legendary':    { cls: 'legendary',   label: 'LEGENDARY',     emoji: '🌟' },
+  'Mythic':       { cls: 'mythic',      label: 'MYTHIC',        emoji: '🔥' },
+  'Brainrot God': { cls: 'brainrotgod', label: 'BRAINROT GOD',  emoji: '👑' },
+  'Secret':       { cls: 'secret',      label: 'SECRET',        emoji: '🔒' },
+  'OG':           { cls: 'og',          label: 'OG',            emoji: '⚡' },
+  'Lucky Block':  { cls: 'lucky',       label: 'LUCKY BLOCK',   emoji: '🍀' },
+};
+ 
+// Cards that rotate between two images every 2s
+// key = exact brainrot name, value = [file1, file2] (in brainrot_images/)
+const ROTATING = {
+  'Granny':               ['Granny.png',               'GrannyWheelchair.png'],
+  'Tung Tung Tung Sahur': ['Tung Tung Tung Sahur.png', 'CoffinTung.png'],
+};
+ 
+const RAW = `Strawberry Elephant|OG
+Meowl|OG
+Headless Horseman|OG
+Skibidi Toilet|OG
+Griffin|Secret
+Dragon Gingerini|Secret
+Hydra Dragon Cannelloni|Secret
+Dragon Cannelloni|Secret
+Love Love Bear|Secret
+La Supreme Combinasion|Secret
+Cerberus|Secret
+Celestial Pegasus|Secret
+Popcuru and Fizzuru|Secret
+Rosey and Teddy|Secret
+Capitano Moby|Secret
+Cooki and Milki|Secret
+Burguro And Fryuro|Secret
+Ketupat Bros|Secret
+Reinito Sleighito|Secret
+Los Amigos|Secret
+Fortunu and Cashuru|Secret
+La Secret Combinasion|Secret
+Foxini Lanternini|Secret
+Los Sekolahs|Secret
+Signore Carapace|Secret
+La Casa Boo|Secret
+Fragrama and Chocrama|Secret
+La Food Combinasion|Secret
+Elefanto Frigo|Secret
+Spooky and Pumpky|Secret
+La Ginger Sekolah|Secret
+Ginger Gerat|Secret
+Los Spaghettis|Secret
+Sammyni Fattini|Secret
+Festive 67|Secret
+Ventoliero Pavonero|Secret
+Spaghetti Tualetti|Secret
+Cloverat Clapat|Secret
+Antonio|Secret
+Rosetti Tualetti|Secret
+Garama and Madundung|Secret
+Nacho Spyder|Secret
+Fishino Clownino|Secret
+Jolly Jolly Sahur|Secret
+Lavadorito Spinito|Secret
+Gold Gold Gold|Secret
+Tirilikalika Tirilikalako|Secret
+Ketchuru and Musturu|Secret
+Swaggy Bros|Secret
+La Lucky Grande|Secret
+La Romantic Grande|Secret
+Orcaledon|Secret
+Tictac Sahur|Secret
+Ketupat Kepat|Secret
+La Taco Combinasion|Secret
+Dug dug dug|Secret
+Tang Tang Keletang|Secret
+Lovin Rose|Secret
+Los Tacoritas|Secret
+Eviledon|Secret
+Los Primos|Secret
+Los Cupids|Secret
+Esok Sekolah|Secret
+W or L|Secret
+La Jolly Grande|Secret
+Los Puggies|Secret
+Gobblino Uniciclino|Secret
+Tralaledon|Secret
+Tuff Toucan|Secret
+Mieteteira Bicicleteira|Secret
+Chillin Chili|Secret
+Money Money Reindeer|Secret
+Chipso and Queso|Secret
+La Spooky Grande|Secret
+Los Bros|Secret
+Bacuru and Egguru|Secret
+La Extinct Grande|Secret
+Los Candies|Secret
+Celularcini Viciosini|Secret
+Los 67|Secret
+Los Mobilis|Secret
+Money Money Puggy|Secret
+Los Hotspotsitos|Secret
+Los Spooky Combinasionas|Secret
+Cigno Fulgoro|Secret
+Los Jolly Combinasionas|Secret
+Los Planitos|Secret
+Snailo Clovero|Secret
+DJ Panda|Secret
+Chicleteira Cupideira|Secret
+Las Sis|Secret
+Spinny Hammy|Secret
+Los Sweethearts|Secret
+Tacorita Bicicleta|Secret
+Chicleteira Noelteira|Secret
+Los Combinasionas|Secret
+Nuclearo Dinossauro|Secret
+Chimnino|Secret
+Noo my Gold|Secret
+Noo my Heart|Secret
+Swag Soda|Secret
+Tacorillo Crocodillo|Secret
+Mariachi Corazoni|Secret
+Los 25|Secret
+La Grande Combinasion|Secret
+Los Burritos|Secret
+Donkeyturbo Express|Secret
+67|Secret
+Los Chicleteiras|Secret
+Guest 666|Secret
+Los Mi Gatitos|Secret
+Noo my Present|Secret
+Rang Ring Bus|Secret
+Serafinna Medusella|Secret
+Los Nooo My Hotspotsitos|Secret
+Noo my Candy|Secret
+Arcadopus|Secret
+Los Quesadillas|Secret
+Chicleteirina Bicicleteirina|Secret
+Granny|Secret
+Chill Puppy|Secret
+Burrito Bandito|Secret
+Luck Luck Luck Sahur|Secret
+Chicleteira Bicicleteira|Secret
+Eid Eid Eid Sahur|Secret
+Cupid Hotspot|Secret
+Quesadillo Vampiro|Secret
+Brunito Marsito|Secret
+Mi Gatito|Secret
+Ho Ho Ho Sahur|Secret
+Cupid Cupid Sahur|Secret
+Pot Pumpkin|Secret
+Naughty Naughty|Secret
+Quesadilla Crocodila|Secret
+Bunito Bunito Spinito|Secret
+Horegini Boom|Secret
+Santa Hotspot|Secret
+Pirulitoita Bicicleteira|Secret
+25|Secret
+Pot Hotspot|Secret
+To to to Sahur|Secret
+Telemorte|Secret
+La Sahur Combinasion|Secret
+List List List Sahur|Secret
+Noo my examine|Secret
+Tung Tung Tung Sahur|Secret
+Los Jobcitos|Secret
+Bunnyman|Secret
+Nooo My Hotspot|Secret
+Cuadramat and Pakrahmatmamat|Secret
+Please my Present|Secret
+Los Cucarachas|Secret
+1x1x1x1|Secret
+La Vacca Lepre Lepreino|Secret
+Perrito Burrito|Secret
+Graipuss Medussi|Secret
+Love Love Love Sahur|Secret
+Giftini Spyderini|Secret
+GOAT|Secret
+Paradiso Axolottino|Secret
+Trickolino|Secret
+Triplito Tralaleritos|Secret
+La Vacca Jacko Linterino|Secret
+Fishboard|Secret
+Santteo|Secret
+Las Vaquitas Saturnitas|Secret
+Los Karkeritos|Secret
+Karker Sahur|Secret
+Los Trios|Secret
+Job Job Job Sahur|Secret
+Frankentteo|Secret
+Pumpkini Spyderini|Secret
+Rocco Disco|Secret
+Las Tralaleritas|Secret
+Extinct Matteo|Secret
+La Karkerkar Combinasion|Secret
+Reindeer Tralala|Secret
+La Vacca Prese Presente|Secret
+Yess my examine|Secret
+Guerriro Digitale|Secret
+Boatito Auratito|Secret
+Zombie Tralala|Secret
+Los Tralaleritos|Secret
+Vulturino Skeletono|Secret
+Los Tortus|Secret
+La Cucaracha|Secret
+Extinct Tralalero|Secret
+Fragola La La La|Secret
+Los Spyderinis|Secret
+Agarrini La Palini|Secret
+Blackhole Goat|Secret
+Chachechi|Secret
+Dul Dul Dul|Secret
+Torrtuginni Dragonfrutini|Secret
+Trenostruzzo Turbo 4000|Secret
+Sammyni Spyderini|Secret
+Karkerkar Kurkur|Secret
+Los Matteos|Secret
+La Vacca Saturno Saturnita|Secret
+Bisonte Giuppitere|Secret
+Jackorilla|Secret
+Dumborino Miracello|Brainrot God
+Clovkur Kurkur|Brainrot God
+Karkerheart Luvkur|Brainrot God
+Pop Pop Sahur|Brainrot God
+Dolphini Jetskini|Brainrot God
+Pandanini Frostini|Brainrot God
+Ginger Cisterna|Brainrot God
+Tentacolo Tecnico|Brainrot God
+Cocoa Assassino|Brainrot God
+Skull Skull Skull|Brainrot God
+Belula Beluga|Brainrot God
+Krupuk Pagi Pagi|Brainrot God
+Patteo|Brainrot God
+Brasilini Berimbini|Brainrot God
+Cappuccino Clownino|Brainrot God
+Luv Luv Luv|Brainrot God
+Astrolero Cervalero|Brainrot God
+Noo La Polizia|Brainrot God
+Anpali Babel|Brainrot God
+Chrismasmamat|Brainrot God
+Mastodontico Telepiedone|Brainrot God
+Bambu Bambu Sahur|Brainrot God
+Los Gattitos|Brainrot God
+Boba Panda|Brainrot God
+Piccionetta Machina|Brainrot God
+Buho de Noelo|Brainrot God
+Frio Ninja|Brainrot God
+Los Tipi Tacos|Brainrot God
+Tootini Shrimpini|Brainrot God
+Granchiello Spiritell|Brainrot God
+Ginger Globo|Brainrot God
+Yeti Claus|Brainrot God
+Mummy Ambalabu|Brainrot God
+Squalanana|Brainrot God
+Snailenzo|Brainrot God
+Tartaruga Cisterna|Brainrot God
+Corn Corn Corn Sahur|Brainrot God
+Aquanaut|Brainrot God
+Cacasito Satalito|Brainrot God
+Orcalita Orcala|Brainrot God
+Los Orcalitos|Brainrot God
+Crabbo Limonetta|Brainrot God
+Tractoro Dinosauro|Brainrot God
+Piccione Macchina|Brainrot God
+Bombardini Tortinii|Brainrot God
+Brr es Teh Patipum|Brainrot God
+Pakrahmatmatina|Brainrot God
+Los Bombinitos|Brainrot God
+Pakrahmatmamat|Brainrot God
+Ballerina Peppermintina|Brainrot God
+Los Tungtungtungcitos|Brainrot God
+Bulbito Bandito Traktorito|Brainrot God
+Ballerino Lololo|Brainrot God
+Las Capuchinas|Brainrot God
+Trippi Troppi Troppa Trippa|Brainrot God
+Gattito Tacoto|Brainrot God
+Divino Platypio|Brainrot God
+Los Chihuaninis|Brainrot God
+Capi Taco|Brainrot God
+Jacko Jack Jack|Brainrot God
+Urubini Flamenguini|Brainrot God
+Trenostruzzo Turbo 3000|Brainrot God
+Extinct Ballerina|Brainrot God
+Vampira Cappuccina|Brainrot God
+Tralalita Tralala|Brainrot God
+Tukanno Bananno|Brainrot God
+Orcalero Orcala|Brainrot God
+Alessio|Brainrot God
+Odin Din Din Dun|Brainrot God
+Tipi Topi Taco|Brainrot God
+Unclito Samito|Brainrot God
+Espresso Signora|Brainrot God
+Money Money Man|Brainrot God
+Tigroligre Frutonni|Brainrot God
+Los Crocodillitos|Brainrot God
+Matteo|Brainrot God
+Tralalero Tralala|Brainrot God
+Chihuanini Taconini|Brainrot God
+Gattatino Nyanino|Brainrot God
+Girafa Celestre|Brainrot God
+Cocofanto Elefanto|Brainrot God
+Berenjello Angello|Mythic
+Fizzy Soda|Mythic
+Tree Tree Tree Sahur|Mythic
+Bananito Bandito|Mythic
+Jacko Spaventosa|Mythic
+Toiletto Focaccino|Mythic
+Centrucci Nuclucci|Mythic
+Carrotini Brainini|Mythic
+Harpuccino|Mythic
+Carloo|Mythic
+Cachorrito Melonito|Mythic
+Spongini Quackini|Mythic
+Los Noobinis|Mythic
+Jingle Jingle Sahur|Mythic
+Tracoducotulu Delapeladustuz|Mythic
+Magi Ribbitini|Mythic
+Rhino Helicopterino|Mythic
+Te Te Te Sahur|Mythic
+Ganganzelli Trulala|Mythic
+Lerulerulerule|Mythic
+Tob Tobi Tobi|Mythic
+Stoppo Luminino|Mythic
+Gorillo Watermelondrillo|Mythic
+Gorillo Subwoofero|Mythic
+Cavallo Virtuoso|Mythic
+Avocadorilla|Mythic
+Tigrilini Watermelini|Mythic
+Zibra Zubra Zibralini|Mythic
+Bombombini Gusini|Mythic
+Spioniro Golubiro|Mythic
+Brutto Gialutto|Mythic
+Bombardiro Crocodilo|Mythic
+Rhino Toasterino|Mythic
+Orangutini Ananassini|Mythic
+Frigo Camelo|Mythic
+Seraphino Gruyero|Legendary
+Buho de Fuego|Legendary
+Sealo Regalo|Legendary
+Sigma Girl|Legendary
+Puffaball|Legendary
+Chocco Bunny|Legendary
+Buho del Cielo|Legendary
+Sigma Boy|Legendary
+Pi Pi Watermelon|Legendary
+Quackula|Legendary
+Pandaccini Bananini|Legendary
+Cocosini Mama|Legendary
+Strawberrelli Flamingelli|Legendary
+Pipi Potato|Legendary
+Caramello Filtrello|Legendary
+Blueberrinni Octopusini|Legendary
+Clickerino Crabo|Legendary
+Quivioli Ameleonni|Legendary
+Glorbo Fruttodrillo|Legendary
+Lionel Cactuseli|Legendary
+Chef Crabracadabra|Legendary
+Ballerina Cappuccina|Legendary
+Chimpanzini Bananini|Legendary
+Burbaloni Loliloli|Legendary
+Mummio Rappitto|Epic
+Penguino Cocosino|Epic
+Wombo Rollo|Epic
+Penguin Tree|Epic
+Doi Doi Do|Epic
+Salamino Penguino|Epic
+Gato Celesto|Epic
+Frogato Pirato|Epic
+Mangolini Parrocini|Epic
+Avocadini Guffo|Epic
+Ti Ti Ti Sahur|Epic
+Brri Brri Bicus Dicus Bombicus|Epic
+Perochello Lemonchello|Epic
+Bananita Dolphinita|Epic
+Malame Amarele|Epic
+Bambini Crostini|Epic
+Trulimero Trulicina|Epic
+Avocadini Antilopini|Epic
+Brr Brr Patapim|Epic
+Bandito Axolito|Epic
+Cappuccino Assassino|Epic
+Pinealotto Fruttarino|Rare
+Pengolino Nuvoletto|Rare
+Pipi Avocado|Rare
+Frogo Elfo|Rare
+Tric Trac Baraboom|Rare
+Cupcake Koala|Rare
+Ta Ta Ta Ta Sahur|Rare
+Cacto Hipopotamo|Rare
+Boneca Ambalabu|Rare
+Bandito Bobritto|Rare
+Gangster Footera|Rare
+Trippi Troppi|Rare
+Pipi Corni|Common
+Holy Arepa|Common
+Tartaragno|Common
+Pipi Kiwi|Common
+Raccooni Jandelini|Common
+Noobini Santanini|Common
+Svinina Bombardino|Common
+Talpa Di Fero|Common
+Fluriflura|Common
+Tim Cheese|Common
+Lirili Larila|Common
+Noobini Pizzanini|Common
+Leprechaun Lucky Block|Lucky Block
+Heart Lucky Block|Lucky Block
+Festive Lucky Block|Lucky Block
+Spooky Lucky Block|Lucky Block
+Los Taco Blocks|Lucky Block
+Los Lucky Blocks|Lucky Block
+Taco Lucky Block|Lucky Block
+Admin Lucky Block|Lucky Block
+Secret Lucky Block|Lucky Block
+Brainrot God Lucky Block|Lucky Block
+Mythic Lucky Block|Lucky Block`;
+
+// ─────────────────────────────────────────────
+// PARSE DATA
+// ─────────────────────────────────────────────
+const allBrainrots = [];
+const byRarity = {};
+ 
+RAW.trim().split('\n').forEach(line => {
+  const idx = line.indexOf('|');
+  if (idx === -1) return;
+  const name   = line.slice(0, idx).trim();
+  const rarity = line.slice(idx + 1).trim();
+  if (!byRarity[rarity]) byRarity[rarity] = [];
+  byRarity[rarity].push(name);
+  allBrainrots.push({ name, rarity });
+});
+ 
+// Reverse each group (so last-in-file = first in section)
+Object.keys(byRarity).forEach(r => byRarity[r].reverse());
+ 
+const TOTAL = allBrainrots.length;
+document.getElementById('counter').textContent = `0 / ${TOTAL}`;
+ 
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+let guessed       = new Set();
+let timerInterval = null;
+let timerSeconds  = 0;
+let timerStarted  = false;
+let gameOver      = false;
+let shadowMode    = false;
+let shadowQueue   = [];
+let shadowIndex   = 0;
+let currentShadowCard = null;
+ 
+function norm(s) { return s.toLowerCase().replace(/[^a-z0-9]/g, ''); }
+ 
+const normMap = {};
+const rarityOf = {};   // name → rarity (fast lookup, avoids .find() per guess)
+const sectionCount = {}; // rarity → number guessed (avoids .filter() per guess)
+allBrainrots.forEach(b => {
+  normMap[norm(b.name)] = b.name;
+  rarityOf[b.name] = b.rarity;
+});
+Object.keys(byRarity).forEach(r => { sectionCount[r] = 0; });
+ 
+// ─────────────────────────────────────────────
+// BUILD UI
+// ─────────────────────────────────────────────
+const mainEl = document.getElementById('main');
+ 
+function imgPath(name) { return `brainrot_images/${name}.png`; }
+ 
+function buildCard(name) {
+  const card = document.createElement('div');
+  card.className = 'brainrot-card';
+  card.id = `card-${norm(name)}`;
+  card.dataset.name = name;
+ 
+  // Question mark (coloured by rarity via CSS)
+  const qMark = document.createElement('div');
+  qMark.className = 'q-mark';
+  qMark.textContent = '?';
+  card.appendChild(qMark);
+ 
+  // Shadow silhouette
+  const shadowWrap = document.createElement('div');
+  shadowWrap.className = 'shadow-img-wrap';
+  const shadowImg = document.createElement('img');
+  shadowImg.src = imgPath(name);
+  shadowImg.alt = '?';
+  shadowWrap.appendChild(shadowImg);
+  card.appendChild(shadowWrap);
+ 
+  if (ROTATING[name]) {
+    // Rotating card: two overlapping frames, toggled by opacity
+    card.classList.add('rotating');
+    ROTATING[name].forEach((file, i) => {
+      const rf = document.createElement('img');
+      rf.className = 'rotating-frame';
+      rf.src = `brainrot_images/${file}`;
+      rf.alt = name;
+      rf.style.opacity = i === 0 ? '1' : '0';
+      card.appendChild(rf);
+    });
+  } else {
+    // Normal brainrot image
+    const bImg = document.createElement('img');
+    bImg.className = 'brainrot-img';
+    bImg.src = imgPath(name);
+    bImg.alt = name;
+    card.appendChild(bImg);
+  }
+ 
+  return card;
+}
+ 
+function buildSection(rarity) {
+  const meta     = RARITY_META[rarity] || { cls: 'misc', label: rarity.toUpperCase(), emoji: '◉' };
+  const brainrots = byRarity[rarity] || [];
+  const sectionId = rarity.replace(/\s+/g, '-');
+ 
+  const section = document.createElement('div');
+  section.className = `section section-${meta.cls}`;
+  section.id = `section-${sectionId}`;
+  section.dataset.rarity = rarity;
+ 
+  const title = document.createElement('div');
+  title.className = 'section-title';
+  let miscHint = '';
+  if (rarity === 'Misc') {
+    miscHint = ` <span class="misc-hint-wrap" title="Think of the Christmas 2025 update..."><img src="Question.png" class="misc-hint-icon" alt="?"></span>`;
+  }
+  title.innerHTML = `<span class="title-label">${meta.emoji} ${meta.label}${miscHint}</span> <span class="section-title-count" id="prog-${sectionId}">0 / ${brainrots.length}</span>`;
+  section.appendChild(title);
+ 
+  const grid = document.createElement('div');
+  grid.className = 'brainrot-grid';
+  brainrots.forEach(name => grid.appendChild(buildCard(name)));
+  section.appendChild(grid);
+ 
+  return section;
+}
+ 
+// Create layout containers
+const leftCol = document.createElement('div');
+leftCol.id = 'left-col';
+mainEl.appendChild(leftCol);
+
+const rightCol = document.createElement('div');
+rightCol.id = 'right-col';
+mainEl.appendChild(rightCol);
+
+// Left col gets a sub-row for OG + Lucky Block to sit beside each other under Legendary
+const ogLuckyRow = document.createElement('div');
+ogLuckyRow.id = 'og-lucky-row';
+ogLuckyRow.style.cssText = 'display:flex;gap:10px;align-items:start;';
+
+const LEFT_SOLO   = ['Common','Rare','Epic','Legendary'];
+const LEFT_ROW    = ['OG','Lucky Block'];
+const RIGHT_RARITIES = ['Mythic','Brainrot God','Secret'];
+
+RARITIES_ORDER.forEach(r => {
+  if (!byRarity[r] || byRarity[r].length === 0) return;
+  const section = buildSection(r);
+  if (RIGHT_RARITIES.includes(r)) rightCol.appendChild(section);
+  else if (LEFT_ROW.includes(r)) { section.style.flex = '1'; ogLuckyRow.appendChild(section); }
+  else leftCol.appendChild(section);
+});
+leftCol.appendChild(ogLuckyRow);
+ 
+// Cache hot-path DOM elements
+const counterEl = document.getElementById('counter');
+const lgImg     = document.getElementById('last-guess-img');
+const lgLabel   = document.getElementById('last-guess-label');
+// ─────────────────────────────────────────────
+Object.keys(ROTATING).forEach(name => {
+  const card = document.getElementById(`card-${norm(name)}`);
+  if (!card) return;
+  const frames = card.querySelectorAll('.rotating-frame');
+  if (frames.length < 2) return;
+  let cur = 0;
+  setInterval(() => {
+    if (!card.classList.contains('guessed')) return;
+    frames[cur].style.opacity = '0';
+    cur = (cur + 1) % frames.length;
+    frames[cur].style.opacity = '1';
+  }, 2000);
+});
+ 
+// ─────────────────────────────────────────────
+// TIMER
+// ─────────────────────────────────────────────
+function formatTime(s) {
+  const h   = String(Math.floor(s / 3600)).padStart(2, '0');
+  const m   = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+  const sec = String(s % 60).padStart(2, '0');
+  return `⏱ ${h}:${m}:${sec}`;
+}
+function startTimer() {
+  if (timerStarted) return;
+  timerStarted = true;
+  timerInterval = setInterval(() => {
+    timerSeconds++;
+    document.getElementById('timer').textContent = formatTime(timerSeconds);
+    if (timerSeconds % 60 === 0) {
+      const t = document.getElementById('timer');
+      t.classList.remove('timer-minute-flash');
+      void t.offsetWidth;
+      t.classList.add('timer-minute-flash');
+      setTimeout(() => t.classList.remove('timer-minute-flash'), 1300);
+    }
+  }, 1000);
+}
+function stopTimer() { clearInterval(timerInterval); }
+ 
+// ─────────────────────────────────────────────
+// GUESS LOGIC
+// ─────────────────────────────────────────────
+let firstGuessUsed = false;
+
+function checkGuess(val) {
+  const n = norm(val);
+  if (!normMap[n]) return false;
+  const name = normMap[n];
+  if (guessed.has(name)) {
+    showAlreadyGuessed(name);
+    return false; // don't clear — lets user keep typing e.g. "Trippi Troppi Troppa Trippa"
+  }
+
+  guessed.add(name);
+  startTimer();
+
+  // Easter egg: special first-guess confetti
+  if (!firstGuessUsed) {
+    firstGuessUsed = true;
+    if (name === 'Trenostruzzo Turbo 3000' || name === 'Sigma Boy') {
+      setTimeout(() => launchSideConfetti(name), 300);
+    }
+  }
+
+  // Reveal card
+  const card = document.getElementById(`card-${n}`);
+  if (card) {
+    card.classList.add('flash');
+    setTimeout(() => card.classList.add('guessed'), 180);
+    setTimeout(() => card.classList.remove('flash'), 480);
+    if (card.classList.contains('shadow-active')) card.classList.remove('shadow-active');
+  }
+
+  // Last guess: show image in header
+  lgImg.src   = imgPath(name);
+  lgImg.style.display = 'block';
+  lgLabel.textContent = '';
+
+  // Counter
+  counterEl.textContent = `${guessed.size} / ${TOTAL}`;
+
+  // Section progress
+  const rarity  = rarityOf[name] || '';
+  const rarKey  = rarity.replace(/\s+/g, '-');
+  const secList = byRarity[rarity] || [];
+  sectionCount[rarity] = (sectionCount[rarity] || 0) + 1;
+  const secDone = sectionCount[rarity];
+  const progEl  = document.getElementById(`prog-${rarKey}`);
+  if (progEl) progEl.textContent = `${secDone} / ${secList.length}`;
+
+  if (secDone === secList.length) {
+    const section = document.getElementById(`section-${rarKey}`);
+    if (section) section.classList.add('complete');
+    showSectionComplete(rarity);
+  }
+
+  if (guessed.size === TOTAL) {
+    stopTimer();
+    gameOver = true;
+    document.getElementById('brainrot-input').disabled = true;
+    triggerWin();
+  }
+
+  return true;
+}
+ 
+
+
+function launchSideConfetti(brainrotName) {
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:600;';
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const img = new Image();
+  img.src = imgPath(brainrotName);
+  img.onload = () => {
+    const pieces = [];
+    const count = 40;
+    for (let i = 0; i < count; i++) {
+      const fromLeft = i < count / 2;
+      pieces.push({
+        x: fromLeft ? -80 : canvas.width + 80,
+        y: Math.random() * canvas.height,
+        vx: fromLeft ? Math.random() * 8 + 4 : -(Math.random() * 8 + 4),
+        vy: (Math.random() - 0.5) * 5,
+        rot: Math.random() * Math.PI * 2,
+        rotSpeed: (Math.random() - 0.5) * 0.12,
+        scale: Math.random() * 0.25 + 0.18,
+        life: 1,
+        decay: Math.random() * 0.008 + 0.004,
+      });
+    }
+    let frame = 0;
+    (function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let alive = false;
+      pieces.forEach(p => {
+        p.x += p.vx; p.y += p.vy; p.rot += p.rotSpeed; p.life -= p.decay;
+        if (p.life > 0) alive = true;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        const w = img.naturalWidth * p.scale;
+        const h = img.naturalHeight * p.scale;
+        ctx.drawImage(img, -w/2, -h/2, w, h);
+        ctx.restore();
+      });
+      frame++;
+      if (alive && frame < 300) requestAnimationFrame(draw);
+      else canvas.remove();
+    })();
+  };
+}
+
+
+document.getElementById('brainrot-input').addEventListener('input', function () {
+  if (gameOver) return;
+  if (checkGuess(this.value.trim())) this.value = '';
+});
+ 
+// ─────────────────────────────────────────────
+// GIVE UP
+// ─────────────────────────────────────────────
+document.getElementById('giveup-btn').addEventListener('click', () => {
+  if (gameOver) return;
+  stopTimer();
+  gameOver = true;
+  document.getElementById('brainrot-input').disabled = true;
+ 
+  const container = document.getElementById('missed-container');
+  container.innerHTML = '';
+  let totalMissed = 0;
+ 
+  RARITIES_ORDER.forEach(r => {
+    const brainrots = byRarity[r] || [];
+    const missed    = brainrots.filter(b => !guessed.has(b));
+    if (!missed.length) return;
+    totalMissed += missed.length;
+ 
+    const meta = RARITY_META[r] || { label: r, emoji: '' };
+    const sec  = document.createElement('div');
+    sec.className = 'missed-section';
+    sec.innerHTML = `<h3>${meta.emoji} ${meta.label} — ${missed.length} missed</h3>`;
+ 
+    const grid = document.createElement('div');
+    grid.className = 'missed-grid';
+    missed.forEach(name => {
+      const item = document.createElement('div');
+      item.className = 'missed-item';
+      item.innerHTML = `<img src="${imgPath(name)}" alt="${name}" onerror="this.style.opacity=0.12"><span>${name}</span>`;
+      grid.appendChild(item);
+    });
+ 
+    sec.appendChild(grid);
+    container.appendChild(sec);
+  });
+ 
+  document.getElementById('giveup-subtitle').textContent =
+    `You got ${guessed.size} / ${TOTAL}. You missed ${totalMissed} brainrots.`;
+  document.getElementById('giveup-overlay').classList.add('active');
+});
+ 
+document.getElementById('giveup-close').addEventListener('click', () => {
+  document.getElementById('giveup-overlay').classList.remove('active');
+});
+
+// ─────────────────────────────────────────────
+// SHADOWS MODE
+// ─────────────────────────────────────────────
+document.getElementById('shadows-btn').addEventListener('click', () => {
+  if (gameOver) return;
+  shadowMode = !shadowMode;
+  if (shadowMode) {
+    document.getElementById('shadows-btn').textContent = '👁 EXIT SHADOWS';
+    document.getElementById('shadow-controls').classList.add('active');
+    buildShadowQueue();
+    revealNextShadow();
+  } else {
+    document.getElementById('shadows-btn').textContent = '👁 SHADOWS';
+    document.getElementById('shadow-controls').classList.remove('active');
+    document.querySelectorAll('.brainrot-card.shadow-active').forEach(c => c.classList.remove('shadow-active'));
+  }
+});
+ 
+function buildShadowQueue() {
+  shadowQueue = allBrainrots
+    .filter(b => !guessed.has(b.name))
+    .map(b => b.name)
+    .sort(() => Math.random() - 0.5);
+  shadowIndex = 0;
+}
+ 
+function revealNextShadow() {
+  if (currentShadowCard && !currentShadowCard.classList.contains('guessed')) {
+    currentShadowCard.classList.remove('shadow-active');
+    currentShadowCard.classList.remove('shadow-new-reveal');
+  }
+
+  while (shadowIndex < shadowQueue.length && guessed.has(shadowQueue[shadowIndex])) shadowIndex++;
+  if (shadowIndex >= shadowQueue.length) {
+    buildShadowQueue();
+    if (!shadowQueue.length) return;
+  }
+
+  const name = shadowQueue[shadowIndex++];
+  const card = document.getElementById(`card-${norm(name)}`);
+  if (card && !card.classList.contains('guessed')) {
+    card.classList.add('shadow-active');
+    card.classList.remove('shadow-new-reveal');
+    void card.offsetWidth;
+    card.classList.add('shadow-new-reveal');
+    setTimeout(() => card.classList.remove('shadow-new-reveal'), 2100);
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    currentShadowCard = card;
+    document.getElementById('shadow-info').textContent = `Silhouette: ${name.replace(/./g, '·')} — Enter or NEXT to advance`;
+  }
+}
+
+document.getElementById('shadow-next-btn').addEventListener('click', revealNextShadow);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && shadowMode && !gameOver) revealNextShadow();
+});
+
+// ─────────────────────────────────────────────
+// WIN SCREEN
+// ─────────────────────────────────────────────
+function triggerWin() {
+  counterEl.classList.add('win-glow');
+  document.getElementById('win-total').textContent = TOTAL;
+  document.getElementById('win-overlay').classList.add('active');
+  launchFallingImages();
+  setTimeout(() => {
+    document.getElementById('win-restart-btn').style.display = 'inline-block';
+  }, 5000);
+}
+
+document.getElementById('win-restart-btn').addEventListener('click', () => location.reload());
+
+function launchFallingImages() {
+  const canvas = document.getElementById('win-canvas');
+  canvas.style.display = 'block';
+  const ctx = canvas.getContext('2d');
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  // Only pick 16 unique images to load (fewer network requests)
+  const chosen = [...allBrainrots].sort(() => Math.random() - 0.5).slice(0, 16);
+  const imgs = [];
+  const pieces = [];
+  let loaded = 0;
+  let rafId = null;
+
+  chosen.forEach(b => {
+    const im = new Image();
+    im.onload = im.onerror = () => { if (++loaded === chosen.length) startFalling(); };
+    im.src = imgPath(b.name);
+    imgs.push(im);
+  });
+
+  function startFalling() {
+    // 30 pieces is plenty — was 50
+    for (let i = 0; i < 30; i++) {
+      const im = imgs[Math.floor(Math.random() * imgs.length)];
+      const scale = Math.random() * 0.22 + 0.1;
+      pieces.push({
+        img: im,
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height - canvas.height,
+        scale,
+        speed: Math.random() * 1.8 + 0.8,
+        rot: Math.random() * Math.PI * 2,
+        rotSpeed: (Math.random() - 0.5) * 0.05,
+        opacity: Math.random() * 0.5 + 0.25,
+      });
+    }
+
+    // Stop the loop after 20s to prevent endless lag
+    const stopAt = performance.now() + 20000;
+
+    (function draw() {
+      if (performance.now() > stopAt) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        return;
+      }
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      pieces.forEach(p => {
+        p.y += p.speed; p.rot += p.rotSpeed;
+        if (p.y > canvas.height + 100) { p.y = -100; p.x = Math.random() * canvas.width; }
+        ctx.save();
+        ctx.globalAlpha = p.opacity;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        const w = p.img.naturalWidth  || 64;
+        const h = p.img.naturalHeight || 64;
+        ctx.drawImage(p.img, -w * p.scale / 2, -h * p.scale / 2, w * p.scale, h * p.scale);
+        ctx.restore();
+      });
+      rafId = requestAnimationFrame(draw);
+    })();
+  }
+}
+
+// ─────────────────────────────────────────────
+// WELCOME SCREEN
+// ─────────────────────────────────────────────
+const FLAVOUR_TEXTS = [
+  'Good luck!', 'You gonna use this one?', 'Think you remember this one?',
+  'Easy one!', 'Tricky!', "Don't forget this one!", "This one's a classic.",
+  "You've got this!", 'Memory check!', 'Feeling confident?', 'A freebie!'
+];
+const RARITY_COLOURS = {
+  'Common':'#4ade80','Rare':'#60a5fa','Epic':'#a855f7','Legendary':'#fbbf24',
+  'Mythic':'#f87171','Brainrot God':'#ff00cc','Secret':'#ffffff','OG':'#ffd700',
+  'Lucky Block':'#ffcc00'
+};
+
+(function showWelcomeHint() {
+  const pick = allBrainrots[Math.floor(Math.random() * allBrainrots.length)];
+  document.getElementById('welcome-hint-img').src = imgPath(pick.name);
+  document.getElementById('welcome-hint-name').textContent = pick.name;
+  const rEl = document.getElementById('welcome-hint-rarity');
+  rEl.textContent = pick.rarity;
+  rEl.style.color = RARITY_COLOURS[pick.rarity] || '#e0e0f0';
+  document.getElementById('welcome-hint-flavour').textContent =
+    FLAVOUR_TEXTS[Math.floor(Math.random() * FLAVOUR_TEXTS.length)];
+})();
+
+document.getElementById('welcome-start-btn').addEventListener('click', () => {
+  const ov = document.getElementById('welcome-overlay');
+  ov.classList.add('hidden');
+  setTimeout(() => { ov.style.display = 'none'; }, 520);
+  const inp = document.getElementById('brainrot-input');
+  inp.focus();
+  inp.classList.add('input-welcome-flash');
+  setTimeout(() => inp.classList.remove('input-welcome-flash'), 1400);
+});
+
+// ─────────────────────────────────────────────
+// ALREADY GUESSED TOAST
+// ─────────────────────────────────────────────
+let toastTimeout = null;
+function showAlreadyGuessed(name) {
+  const toast = document.getElementById('already-guessed-toast');
+  toast.textContent = `${name} already guessed!`;
+  toast.classList.add('show');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => toast.classList.remove('show'), 1800);
+}
+
+// ─────────────────────────────────────────────
+// SECTION COMPLETE TOAST
+// ─────────────────────────────────────────────
+let sctTimeout = null;
+// Rarity-specific inline styles for the toast label
+const RARITY_TOAST_STYLE = {
+  'Common':       'color:#4ade80',
+  'Rare':         'color:#60a5fa',
+  'Epic':         'color:#a855f7',
+  'Legendary':    'color:#fbbf24',
+  'Mythic':       'color:#f87171',
+  'Brainrot God': 'background:linear-gradient(90deg,#ff0000,#ff7700,#ffff00,#00ff00,#0077ff,#ff00cc,#ff0000);background-size:200% 100%;animation:rainbowShift 3s linear infinite;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text',
+  'Secret':       'color:#ffffff',
+  'OG':           'color:#ffd700',
+  'Lucky Block':  'color:#ffcc00',
+};
+
+function showSectionComplete(rarity) {
+  const meta = RARITY_META[rarity];
+  if (!meta) return;
+  const toast = document.getElementById('section-complete-toast');
+  const style = RARITY_TOAST_STYLE[rarity] || 'color:#e0e0f0';
+  toast.innerHTML = `🎉 <span style="${style}">${meta.label}</span> COMPLETED!`;
+  toast.classList.add('show');
+  clearTimeout(sctTimeout);
+  sctTimeout = setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+// ─────────────────────────────────────────────
+// CONFETTI (legacy — kept)
+// ─────────────────────────────────────────────
+function launchConfetti() {}
+
+
+</script>
+</body>
+</html>
